@@ -19,19 +19,19 @@ gpio readall
 
 I haven't built in any kind of config file or arguments for this, so all the settings must be changed in the source.
 
-pwm_pin : GPIO pin (WiringPi numbering) which connects to fan's PWM wire<br/>
-pi_freq : Base frequency in Hz of Pi - 54 MHz for Pi4B (19.2MHz for older models)<br/>
-pwm_freq : Fan PWM frequency in Hz (see fan datasheet for this value)<br/>
-speed_start : Fan speed in % to start fan from dead stop (see fan datasheet for this value)<br/>
-speed_min : Minimum fan speed in % (my fan couldn't reliably run under 10% speed)<br/>
-speed_max : Maximum fan speed in % (depending on your temp_max, this speed may never get reached)<br/>
-temp_min : Temperature in °C to stop fan<br/>
-temp_max : Temperature in °C to set fan to speed_max<br/>
-temp_start : Don't start fan until this temperature in °C is reached<br/>
-tach_pin : GPIO pin (WiringPi numbering) which connects to the tach wire on fan, along with 3.3V with resistor<br/>
-tach_pulse : Number of tachometer pulses per fan revolution (see datasheet for this value)<br/>
-refresh_time : Seconds to wait between updates<br/>
-debug : Set to 1 to print debug message or 0 to run silently
+<b>pwm_pin :</b> GPIO pin (WiringPi numbering) which connects to fan's PWM wire<br/>
+<b>pi_freq :</b> Base frequency in Hz of Pi - 54 MHz for Pi4B (19.2MHz for older models)<br/>
+<b>pwm_freq :</b> Fan PWM frequency in Hz (see fan datasheet for this value)<br/>
+<b>speed_start :</b> Fan speed in % to start fan from dead stop (see fan datasheet for this value)<br/>
+<b>speed_min :</b> Minimum fan speed in % (my fan couldn't reliably run under 10% speed)<br/>
+<b>speed_max :</b> Maximum fan speed in % (depending on your temp_max, this speed may never get reached)<br/>
+<b>temp_min :</b> Temperature in °C to stop fan<br/>
+<b>temp_max :</b> Temperature in °C to set fan to speed_max<br/>
+<b>temp_start :</b> Don't start fan until this temperature in °C is reached<br/>
+<b>tach_pin :</b> GPIO pin (WiringPi numbering) which connects to the tach wire on fan, along with 3.3V with resistor<br/>
+<b>tach_pulse :</b> Number of tachometer pulses per fan revolution (see datasheet for this value)<br/>
+<b>refresh_time :</b> Seconds to wait between updates<br/>
+<b>debug :</b> Set to 1 to print debug message or 0 to run silently
 
 <h2>Compile with :</h2>
 gcc -o wpi wpi.c -lwiringPi<br/>
