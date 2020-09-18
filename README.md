@@ -1,6 +1,8 @@
 # WiringPi-PWM-Fan-Control
 Use WiringPi C library to control a 4-pin PWM fan on Raspberry Pi
 
+After attempting software PWM using python, I quickly realized that it runs the CPU at around 20%.  Using C, and the hardware PWM provided on the Pi drops that to virtually 0% CPU usage.
+
 Depends on WiringPi - to install on Pi4B, I needed to install v2.52 as v2.50 on the apt repos wasn't compatible :<br/>
 wget https://project-downloads.drogon.net/wiringpi-latest.deb<br/>
 sudo dpkg -i wiringpi-latest.deb
@@ -12,6 +14,10 @@ I'm running this on a Pi4B with a Delta ASB0305HP-00CP4 PWM fan.
 
 Helpful guide for the hardware side of wiring a PWM 4-pin fan (also check fan datasheet for required values and resistor for tachometer) :<br/>
 https://blog.driftking.tw/en/2019/11/Using-Raspberry-Pi-to-Control-a-PWM-Fan-and-Monitor-its-Speed/
+
+I don't actually do anything with the RPM tachometer readings, other than display them in debug mode, but feel free to add functionality, or remove the feature entirely if you don't need it.
+
+This is my first attempt at coding using C, so I make no guarantees with this code, simply wanted to share for anyone that wants to build upon this themselves.
 
 <h2>Configuring :</h2>
 This is configured to use the WiringPi pin numbering, to see a list of pins, this command will about a little table :<br/>
