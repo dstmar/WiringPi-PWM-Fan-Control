@@ -20,7 +20,7 @@ I don't actually do anything with the RPM tachometer readings, other than displa
 This is my first attempt at coding using C, so I make no guarantees with this code, simply wanted to share for anyone that wants to build upon this themselves.
 
 <h2>Configuring :</h2>
-This is configured to use the WiringPi pin numbering, to see a list of pins, this command will about a little table :<br/>
+This is configured to use the WiringPi pin numbering, to see a list of pins, this command will display a little table :<br/>
 gpio readall
 
 I haven't built in any kind of config file or arguments for this, so all the settings must be changed in the source.
