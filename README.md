@@ -49,7 +49,7 @@ chmod +x wpi
 sudo ./wpi<br/>
 You can also create a systemd service to launch this as a service on startup.
 
-<h2>Web interface</h2>
+<h2>Web interface :</h2>
 The WiringPi-PWM-Fan-Control listens on localhost TCP port configured above.<br/>
 Anything capable of connecting to this socket can get basic stats from the fan, i've included a simple CGI client (fan.c).<br/>
 It simply provides RPM, temperature and current PWM speed.<br/>
@@ -60,7 +60,7 @@ sudo service lighttpd force-reload<br/>
 sudo gcc -o /usr/lib/cgi-in/fan.cgi fan.c<br/>
 sudo chmod +x /usr/lib/cgi-in/fan.cgi
 
-<h2>E-mail error notifications</h2>
+<h2>E-mail error notifications :</h2>
 I've also added the ability to send e-mail notifications if an error occurs.<br/>
 I use msmtp, and simply lookup how to config /etc/msmtprc for your own SMTP service (I use gmail)<br/>
 sudo apt-get install msmtp<br/>
