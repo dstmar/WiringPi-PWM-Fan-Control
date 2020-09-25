@@ -8,24 +8,32 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <arpa/inet.h>
 
-const int pwm_pin = 1;           /* GPIO 1 as per WiringPi, GPIO18 as per BCM */
-const int pi_freq = 54000000;    /* Base frequency of PI - 54 MHz for Pi4B (19.2MHz for older models) */
-const int pwm_freq = 25000;      /* Fan PWM Frequency in Hz */
-const int speed_start = 40;      /* Fan speed in % to start fan from dead stop */
-const int speed_min = 10;        /* Minimum fan speed in % */
-const int speed_max = 80;        /* Maximum fan speed in % */
-const int temp_min = 35;         /* Temperature in C to stop fan */
-const int temp_max = 75;         /* Temperature in C to set fan to speed_max */
-const int temp_start = 42;       /* Don't start fan until this temperature in C is reached */
-const int tach_pin = 3;          /* GPIO 3 as per WiringPi, GPIO22 as per BCM */
-const int tach_pulse = 2;        /* Number of pulses per fan revolution */
-const int refresh_time = 5;      /* Seconds to wait between updates */
-const int debug = 1;             /* Set to 1 to print debug messages or 0 to run silently */
+const int pwm_pin = 1;                    /* GPIO 1 as per WiringPi, GPIO18 as per BCM */
+const int pi_freq = 54000000;             /* Base frequency of PI - 54 MHz for Pi4B (19.2MHz for older models) */
+const int pwm_freq = 25000;               /* Fan PWM Frequency in Hz */
+const int speed_start = 35;               /* Fan speed in % to start fan from dead stop */
+const int speed_min = 10;                 /* Minimum fan speed in % */
+const int speed_max = 80;                 /* Maximum fan speed in % */
+const int temp_min = 35;                  /* Temperature in C to stop fan */
+const int temp_max = 75;                  /* Temperature in C to set fan to speed_max */
+const int temp_start = 42;                /* Don't start fan until this temperature in C is reached */
+const int tach_pin = 3;                   /* GPIO 3 as per WiringPi, GPIO22 as per BCM */
+const int tach_pulse = 2;                 /* Number of pulses per fan revolution */
+const int refresh_time = 5;               /* Seconds to wait between updates */
+const int port = 8089;                    /* Port used by socket */
+const int debug = 0;                      /* Set to 1 to print debug messages or 0 to run silently */
+const char *email = "email@domain.com";   /* Send notification to this e-mail on error using msmtp */
 
 int range = 0;
 int current_speed = 0;
 int rpm = 0;
+int temp = 0;
 struct timeval tach_time;
 
 /* Sets fan % speed */
@@ -58,7 +66,7 @@ int get_temp(void)
   read(fd, buf, sizeof(buf));
   close(fd);
   sscanf(buf, "%d", &temp);
-  temp = temp/1000; 
+  temp = temp/1000;
   if (debug) printf("temp : %d C\n",temp);
 
   return temp;
@@ -78,6 +86,10 @@ void get_rpm(void)
 void error(char *message)
 {
   printf("Error : %s\n", message);
+  FILE *fptr = fopen("/tmp/wpi_email","w");
+  fprintf(fptr,"To: %s\nSubject: wPi error: %s\n\n\n", email, message);
+  fclose(fptr);
+  system("/usr/bin/msmtp -t < /tmp/wpi_email && rm -f /tmp/wpi_email");
   exit(1);
 }
 
@@ -125,14 +137,20 @@ void end(int signum)
   exit(0);
 }
 
+/* Segfault handler */
+void segfault(int signum)
+{
+  error("Segmentation fault");
+}
+
 /* Setup GPIO for tachometer and PWM */
-void setup(void)
+void setup_gpio(void)
 {
   if (wiringPiSetup() == -1) error("wiringPiSetup failed");
-  if (refresh_time <= 0) error ("refresh_time must be at least 1");
+  if (refresh_time <= 0) error("refresh_time must be at least 1");
 
   // setup rpm tachometer
-  if (tach_pulse <= 0) error ("tach_pulse must be at least 1");
+  if (tach_pulse <= 0) error("tach_pulse must be at least 1");
 
   pinMode(tach_pin, INPUT);
   pullUpDnControl(tach_pin, PUD_UP);
@@ -141,7 +159,7 @@ void setup(void)
 
   // setup pwm fan speed control
   if (speed_max > 100 || speed_max < speed_min) error("speed_max must be between speed_min and 100");
-  if (speed_min < 0) error ("speed_min must be at least 0");
+  if (speed_min < 0) error("speed_min must be at least 0");
   if (speed_start < 0 || speed_start > 100) error("speed_start must between 0 and 100");
   if (temp_min >= temp_max) error("temp_min must be less than temp_max");
   if (temp_min > temp_start) error("temp_start can't be less than temp_min");
@@ -153,17 +171,63 @@ void setup(void)
   pwmSetRange(range);
   pwmSetClock(clock);
   pwmWrite(pwm_pin, 0);
+}
 
-  // shutdown interrupts
-  signal(SIGINT, end);
-  signal(SIGTERM, end);
+/* Socket client thread */
+void * client_thread(void* server_sock)
+{
+  int sock = *(int*) server_sock;
+  free(server_sock);
+  struct sockaddr_in client_addr;
+  int client_socket, n;
+  int addr_size = sizeof(client_addr);
+  char *msg;
+  char buffer[1];
+
+  while (1)
+  {
+    client_socket = accept(sock, (struct sockaddr *) &client_addr, &addr_size);
+    if (client_socket < 0) continue;
+    n = recv(client_socket, buffer, 1, 0);
+    sprintf(msg, "RPM : %d - Temp : %dC - PWM : %d%%", rpm, temp, current_speed);
+    send(client_socket, msg, strlen(msg), 0);
+    close(client_socket);
+  }
+}
+
+/* Setup socket */
+void setup_socket(void)
+{
+  struct sockaddr_in serv_addr;
+  int yes = 1;
+  int sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (sock < 0)
+    error("create socket");
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0)
+    error("reuse socket");
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  serv_addr.sin_port = htons(port);
+  if (bind(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
+    error("socket binding");
+  if (listen(sock,5) < 0)
+    error("socket listener");
+  pthread_t t;
+  int *server_sock = malloc(sizeof(int));
+  *server_sock = sock;
+  pthread_create(&t, NULL, client_thread, server_sock);
 }
 
 int main (void)
 {
-  setup();
+  // shutdown interrupts
+  signal(SIGINT, end);
+  signal(SIGTERM, end);
+  signal(SIGSEGV, segfault);
 
-  int temp;
+  setup_socket();
+  setup_gpio();
+
   int prev_rpm = 0;
   struct timeval prev_tach = tach_time;
   double ratio = (speed_max - speed_min) / (temp_max - temp_min);
