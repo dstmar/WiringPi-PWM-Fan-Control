@@ -15,7 +15,7 @@ I'm running this on a Pi4B with a Delta ASB0305HP-00CP4 PWM fan.
 Helpful guide for the hardware side of wiring a PWM 4-pin fan (also check fan datasheet for required values and resistor for tachometer) :<br/>
 https://blog.driftking.tw/en/2019/11/Using-Raspberry-Pi-to-Control-a-PWM-Fan-and-Monitor-its-Speed/
 
-I don't actually do anything with the RPM tachometer readings, other than display them in debug mode, but feel free to add functionality, or remove the feature entirely if you don't need it.
+I don't actually do anything with the RPM tachometer readings, other than display them on the socket, and in debug mode, but feel free to add functionality, or remove the feature entirely if you don't need it.
 
 This is my first attempt at coding using C, so I make no guarantees with this code, simply wanted to share for anyone that wants to build upon this themselves.
 
@@ -37,13 +37,30 @@ I haven't built in any kind of config file or arguments for this, so all the set
 <b>tach_pin :</b> GPIO pin (WiringPi numbering) which connects to the tach wire on fan, along with 3.3V with resistor<br/>
 <b>tach_pulse :</b> Number of tachometer pulses per fan revolution (see datasheet for this value)<br/>
 <b>refresh_time :</b> Seconds to wait between updates<br/>
-<b>debug :</b> Set to 1 to print debug message or 0 to run silently
+<b>port :</b> Port used by localhost TCP socket<br/>
+<b>debug :</b> Set to 1 to print debug message or 0 to run silently<br/>
+<b>email :</b> Send notification to this e-mail on error using msmtp
 
 <h2>Compile with :</h2>
-gcc -o wpi wpi.c -lwiringPi<br/>
+gcc -o wpi wpi.c -lwiringPi -lpthread<br/>
 chmod +x wpi
 
 <h2>Run with :</h2>
-sudo ./wpi
-
+sudo ./wpi<br/>
 You can also create a systemd service to launch this as a service on startup.
+
+<h2>Web interface</h2>
+The WiringPi-PWM-Fan-Control listens on localhost TCP port configured above.<br/>
+Anything capable of connecting to this socket can get basic stats from the fan, i've included a simple CGI client (fan.c).<br/>
+It simply provides RPM, temperature and current PWM speed.<br/>
+To use it, install a CGI compatible web server, I use lighttpd :<br/>
+sudo apt-get install lighttpd<br/>
+sudo lighty-enable-mod cgi<br/>
+sudo service lighttpd force-reload<br/>
+sudo gcc -o /usr/lib/cgi-in/fan.cgi fan.c<br/>
+sudo chmod +x /usr/lib/cgi-in/fan.cgi
+
+<h2>E-mail error notifications</h2>
+I've also added the ability to send e-mail notifications if an error occurs.<br/>
+I use msmtp, and simply lookup how to config /etc/msmtprc for your own SMTP service (I use gmail)<br/>
+sudo apt-get install msmtp<br/>
