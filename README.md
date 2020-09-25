@@ -58,7 +58,8 @@ sudo apt-get install lighttpd<br/>
 sudo lighty-enable-mod cgi<br/>
 sudo service lighttpd force-reload<br/>
 sudo gcc -o /usr/lib/cgi-in/fan.cgi fan.c<br/>
-sudo chmod +x /usr/lib/cgi-in/fan.cgi
+sudo chmod +x /usr/lib/cgi-in/fan.cgi<br/>
+Access via http://<pi-ip-address>/cgi-bin/fan.cgi
 
 <h2>E-mail error notifications :</h2>
 I've also added the ability to send e-mail notifications if an error occurs.<br/>
