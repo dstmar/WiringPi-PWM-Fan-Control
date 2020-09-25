@@ -12,7 +12,7 @@
 const int pwm_pin = 1;           /* GPIO 1 as per WiringPi, GPIO18 as per BCM */
 const int pi_freq = 54000000;    /* Base frequency of PI - 54 MHz for Pi4B (19.2MHz for older models) */
 const int pwm_freq = 25000;      /* Fan PWM Frequency in Hz */
-const int speed_start = 35;      /* Fan speed in % to start fan from dead stop */
+const int speed_start = 40;      /* Fan speed in % to start fan from dead stop */
 const int speed_min = 10;        /* Minimum fan speed in % */
 const int speed_max = 80;        /* Maximum fan speed in % */
 const int temp_min = 35;         /* Temperature in C to stop fan */
