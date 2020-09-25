@@ -57,8 +57,8 @@ To use it, install a CGI compatible web server, I use lighttpd :<br/>
 sudo apt-get install lighttpd<br/>
 sudo lighty-enable-mod cgi<br/>
 sudo service lighttpd force-reload<br/>
-sudo gcc -o /usr/lib/cgi-in/fan.cgi fan.c<br/>
-sudo chmod +x /usr/lib/cgi-in/fan.cgi<br/>
+sudo gcc -o /usr/lib/cgi-bin/fan.cgi fan.c<br/>
+sudo chmod +x /usr/lib/cgi-bin/fan.cgi<br/>
 Access via http://&lt;pi-ip-address&gt;/cgi-bin/fan.cgi
 
 <h2>E-mail error notifications :</h2>
