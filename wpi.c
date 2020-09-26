@@ -10,7 +10,6 @@
 #include <sys/time.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <pthread.h>
 #include <arpa/inet.h>
 
@@ -27,7 +26,7 @@ const int tach_pin = 3;                   /* GPIO 3 as per WiringPi, GPIO22 as p
 const int tach_pulse = 2;                 /* Number of pulses per fan revolution */
 const int refresh_time = 5;               /* Seconds to wait between updates */
 const int port = 8089;                    /* Port used by socket */
-const int debug = 0;                      /* Set to 1 to print debug messages or 0 to run silently */
+const int debug = 1;                      /* Set to 1 to print debug messages or 0 to run silently */
 const char *email = "email@domain.com";   /* Send notification to this e-mail on error using msmtp */
 
 int range = 0;
@@ -173,49 +172,46 @@ void setup_gpio(void)
   pwmWrite(pwm_pin, 0);
 }
 
-/* Socket client thread */
-void * client_thread(void* server_sock)
+/* Setup UDP socket on localhost */
+void * socket_thread(void* arg)
 {
-  int sock = *(int*) server_sock;
-  free(server_sock);
-  struct sockaddr_in client_addr;
-  int client_socket, n;
-  int addr_size = sizeof(client_addr);
-  char *msg;
-  char buffer[1];
-
-  while (1)
-  {
-    client_socket = accept(sock, (struct sockaddr *) &client_addr, &addr_size);
-    if (client_socket < 0) continue;
-    n = recv(client_socket, buffer, 1, 0);
-    sprintf(msg, "RPM : %d - Temp : %dC - PWM : %d%%", rpm, temp, current_speed);
-    send(client_socket, msg, strlen(msg), 0);
-    close(client_socket);
-  }
-}
-
-/* Setup socket */
-void setup_socket(void)
-{
-  struct sockaddr_in serv_addr;
-  int yes = 1;
-  int sock = socket(AF_INET, SOCK_STREAM, 0);
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0)
-    error("create socket");
+    error("Can't create socket");
+
+  int yes = 1;
   if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0)
-    error("reuse socket");
+    error("Can't reuse socket");
+
+  struct sockaddr_in serv_addr;
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
   serv_addr.sin_port = htons(port);
   if (bind(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
-    error("socket binding");
-  if (listen(sock,5) < 0)
-    error("socket listener");
-  pthread_t t;
-  int *server_sock = malloc(sizeof(int));
-  *server_sock = sock;
-  pthread_create(&t, NULL, client_thread, server_sock);
+    error("Can't bind socket");
+
+  struct sockaddr_in client_addr;
+  int addr_size = sizeof(client_addr);
+  char msg[256];
+  char buffer[256];
+  int n;
+ 
+  while (1)
+  {
+    n = recvfrom(sock, buffer, 255, 0, (struct sockaddr *) &client_addr, &addr_size);
+    if (debug)
+    {
+      if (n < 0) printf("Error receiving message from client\n");
+      else
+      {
+        buffer[n] = '\0';
+        printf("Message received from client : %s\n", buffer);
+      }
+    }
+    sprintf(msg, "RPM : %d - Temp : %dC - PWM : %d%%", rpm, temp, current_speed);  
+    sendto(sock, msg, strlen(msg), 0, (struct sockaddr*) &client_addr, addr_size);
+    if (debug) printf("Message sent to client : %s\n", msg);
+  }
 }
 
 int main (void)
@@ -225,7 +221,10 @@ int main (void)
   signal(SIGTERM, end);
   signal(SIGSEGV, segfault);
 
-  setup_socket();
+  // start UDP socket in a thread
+  pthread_t t;
+  pthread_create(&t, NULL, socket_thread, NULL);
+
   setup_gpio();
 
   int prev_rpm = 0;
