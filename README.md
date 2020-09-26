@@ -37,7 +37,7 @@ I haven't built in any kind of config file or arguments for this, so all the set
 <b>tach_pin :</b> GPIO pin (WiringPi numbering) which connects to the tach wire on fan, along with 3.3V with resistor<br/>
 <b>tach_pulse :</b> Number of tachometer pulses per fan revolution (see datasheet for this value)<br/>
 <b>refresh_time :</b> Seconds to wait between updates<br/>
-<b>port :</b> Port used by localhost TCP socket<br/>
+<b>port :</b> Port used by localhost UDP socket<br/>
 <b>debug :</b> Set to 1 to print debug message or 0 to run silently<br/>
 <b>email :</b> Send notification to this e-mail on error using msmtp
 
@@ -50,7 +50,7 @@ sudo ./wpi<br/>
 You can also create a systemd service to launch this as a service on startup.
 
 <h2>Web interface :</h2>
-The WiringPi-PWM-Fan-Control listens on localhost TCP port configured above.<br/>
+The WiringPi-PWM-Fan-Control listens on localhost UDP port configured above.<br/>
 Anything capable of connecting to this socket can get basic stats from the fan, i've included a simple CGI client (fan.c).<br/>
 It simply provides RPM, temperature and current PWM speed.<br/>
 To use it, install a CGI compatible web server, I use lighttpd :<br/>
