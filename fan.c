@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
 
 const int port = 8089;     /* Port used by wpi server */
@@ -21,25 +20,27 @@ void error(char *message)
 int main (void)
 {
   struct sockaddr_in serv_addr;
-  char buffer[256];
-  int client_sock, n;
-
+  int addr_size = sizeof(serv_addr);
+ 
   printf("Content-Type:text/plain\n\n");
 
-  int sock = socket(AF_INET, SOCK_STREAM, 0);
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0)
-    error("opening socket");
+    error("Create socket");
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
   serv_addr.sin_port = htons(port);
-  if (connect(sock,(struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-    error("connecting");
-  send(sock, "1", 1, 0);
-  while ((n = recv(sock, buffer, 255, 0)) > 0)
+  
+  char msg[256] = "fan.cgi";
+  char buffer[256];
+
+  sendto(sock, msg, strlen(msg), 0, (struct sockaddr*) &serv_addr, addr_size);
+  int n = recvfrom(sock, buffer, 255, 0, (struct sockaddr *) &serv_addr, &addr_size);
+  if (n < 0) error("Receiving message from server");
+  else
   {
-    buffer[n] = 0;
-    printf("%s", buffer);
+    buffer[n] = '\0';
+    printf("%s\n", buffer);
   }
-  printf("\n");
   return 0;
 }
