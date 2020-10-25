@@ -133,6 +133,7 @@ void end(int signum)
   pwmWrite(pwm_pin, 0);
   sleep(1);
   pinMode(pwm_pin, INPUT);
+  pullUpDnControl(pwm_pin, PUD_DOWN);
   exit(0);
 }
 
@@ -152,9 +153,9 @@ void setup_gpio(void)
   if (tach_pulse <= 0) error("tach_pulse must be at least 1");
 
   pinMode(tach_pin, INPUT);
-  pullUpDnControl(tach_pin, PUD_UP);
+  pullUpDnControl(tach_pin, PUD_DOWN);
   gettimeofday(&tach_time, NULL);
-  wiringPiISR(tach_pin, INT_EDGE_FALLING, &get_rpm);
+  wiringPiISR(tach_pin, INT_EDGE_RISING, &get_rpm);
 
   // setup pwm fan speed control
   if (speed_max > 100 || speed_max < speed_min) error("speed_max must be between speed_min and 100");
@@ -166,6 +167,7 @@ void setup_gpio(void)
 
   int clock = get_clock();
   pinMode(pwm_pin, PWM_OUTPUT);
+  pullUpDnControl(pwm_pin, PUD_OFF);
   pwmSetMode(PWM_MODE_MS);
   pwmSetRange(range);
   pwmSetClock(clock);
@@ -185,7 +187,7 @@ void * socket_thread(void* arg)
 
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = AF_INET;
-  serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  serv_addr.sin_addr.s_addr = INADDR_ANY;
   serv_addr.sin_port = htons(port);
   if (bind(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
     error("Can't bind socket");
@@ -227,8 +229,9 @@ int main (void)
 
   setup_gpio();
 
-  int prev_rpm = 0;
+  int prev_rpm = -1;
   struct timeval prev_tach = tach_time;
+
   double ratio = (speed_max - speed_min) / (temp_max - temp_min);
 
   while (1)
@@ -243,12 +246,10 @@ int main (void)
     if (!timercmp(&prev_tach, &tach_time, !=))
       rpm = 0;
 
-    if (debug && prev_rpm != rpm)
-    {
-      prev_rpm = rpm;
-      prev_tach = tach_time;
-      printf("rpm : %d\n", rpm);
-    }
+    if (debug && prev_rpm != rpm) printf("rpm : %d\n", rpm);
+
+    prev_rpm = rpm;
+    prev_tach = tach_time;
 
     sleep(refresh_time);
   }
